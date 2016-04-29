@@ -1,3 +1,4 @@
 [submodule "apps/caffe"]
 	path = apps/caffe
-	url = https://github.com/cuihenggang/caffe
+	url = git@github.com:cuihenggang/caffe.git
+	branch = cui-geeps
