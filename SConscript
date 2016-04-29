@@ -22,7 +22,7 @@ def build_all(variant):
 
     env.Append(CPPPATH = ['src'])
     env.Append(LIBS = [
-      'zmq', 'boost_system', 'boost_thread', 'tbb', 'numa', 'tcmalloc_minimal',
+      'zmq', 'boost_system', 'boost_thread', 'tbb',
       'boost_serialization', 'glog', 'gflags'])
     # The -fPIC flag is necessary to build a shared library
     #env.Append(CCFLAGS = '-Wall -Werror -g -fPIC')
