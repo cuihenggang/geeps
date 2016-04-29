@@ -40,7 +40,6 @@ ClientLib::ClientLib(
   current_iteration = INITIAL_CLOCK;
   fast_clock = INITIAL_CLOCK;
   nr_threads = 0;
-  virtual_iteration_all_finished = false;
 
   /* Init the tablet server and communication modules */
   CHECK_GT(num_channels, 0);
@@ -146,7 +145,6 @@ void ClientLib::thread_start() {
 
   /* Init clocks */
   thread_data_ref.iteration = INITIAL_CLOCK;
-  virtual_iteration_states[thread_data_ref.thread_id] = 0;
 
   /* Init cuda stream and cublas handle */
   cudaStreamCreate(&thread_data_ref.cuda_stream);

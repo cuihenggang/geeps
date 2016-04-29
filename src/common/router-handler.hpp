@@ -16,7 +16,7 @@
 #include <string>
 #include <vector>
 
-#include "include/geeps.hpp"
+#include "geeps.hpp"
 #include "portable-bytes.hpp"
 #include "zmq-util.hpp"
 #include "wire-protocol.hpp"

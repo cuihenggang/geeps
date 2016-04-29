@@ -5,7 +5,7 @@
 #include <string>
 #include <vector>
 
-#include "include/geeps.hpp"
+#include "geeps.hpp"
 #include "clientlib.hpp"
 
 using std::string;

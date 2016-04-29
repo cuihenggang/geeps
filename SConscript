@@ -16,11 +16,12 @@ def build_all(variant):
     env['STATIC_AND_SHARED_OBJECTS_ARE_THE_SAME'] = 1
     
     # set nvcc builder
-    nvcc = Builder(action = "/usr/local/cuda/bin/nvcc --compiler-options '-fPIC' --shared -Isrc -c $SOURCE -o $TARGET -g -O3",
+    nvcc = Builder(action = "/usr/local/cuda/bin/nvcc --compiler-options '-fPIC' --shared -Iinclude -Isrc -c $SOURCE -o $TARGET -g -O3",
                    suffix = '.o',
                    src_suffix = '.cu')
 
     env.Append(CPPPATH = ['src'])
+    env.Append(CPPPATH = ['include'])
     env.Append(LIBS = [
       'zmq', 'boost_system', 'boost_thread', 'tbb',
       'boost_serialization', 'glog', 'gflags'])

@@ -3,8 +3,6 @@
 import os
 
 env = DefaultEnvironment()
-env['row_type'] = ARGUMENTS.get('row', 'vector')
-env['oplog_type'] = ARGUMENTS.get('oplog', 'vector')
 env['build_debug'] = ARGUMENTS.get('debug', '0')
 
 build_variants = COMMAND_LINE_TARGETS
@@ -17,8 +15,7 @@ def PhonyTarget(target, source, action):
     AlwaysBuild(env.phony(target = target, source = source))
 
 def write_build_info(target, source, env):
-    build_options = 'scons build=%s row=%s oplog=%s' % \
-        (env['build_debug'], env['row_type'], env['oplog_type'])
+    build_options = 'scons build=%s' % env['build_debug']
     os.system('echo %s > build/last-build-info' % build_options)
     os.system('date >> build/last-build-info')
 

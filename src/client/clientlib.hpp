@@ -5,10 +5,7 @@
  * Copyright (C) 2013 by Carnegie Mellon University.
  */
 
-#include <zmq.hpp>
 #include <tbb/tick_count.h>
-#include <tbb/concurrent_unordered_map.h>
-#include <tbb/concurrent_unordered_set.h>
 #include <boost/thread.hpp>
 #include <boost/unordered_map.hpp>
 #include <boost/unordered_set.hpp>
@@ -21,8 +18,9 @@
 #include <map>
 #include <utility>
 
-#include "include/geeps.hpp"
-#include "common/internal-types.hpp"
+#include "geeps.hpp"
+#include "common/common-util.hpp"
+#include "common/row-op-util.hpp"
 #include "common/router-handler.hpp"
 #include "common/work-pusher.hpp"
 #include "server/server-entry.hpp"
@@ -47,9 +45,6 @@ using boost::condition_variable;
 
 class ServerClientDecode;
 class ClientServerEncode;
-class DataPrefetcher;
-
-typedef tbb::atomic<bool> atomic_bool;
 
 struct FlatOps : DataStorage {
   enum {
@@ -133,16 +128,13 @@ struct OpMemBufferPool {
 };
 
 typedef std::vector<FlatOps *> Oplog; /* Indexed by clock */
-typedef std::vector<atomic_bool> Fetches;           /* Indexed by row-id */
 
 struct ParamCacheMetadata {
   size_t cache_idx;
   int tablet_server_id;
   size_t row_idx;   /* oplog index */
 };
-typedef graphlab::hopscotch_map<TableRow, ParamCacheMetadata> ParamCacheIndex;
-
-typedef tbb::concurrent_unordered_map<uint, iter_t> VectorClock;
+typedef boost::unordered_map<TableRow, ParamCacheMetadata> ParamCacheIndex;
 
 struct PerChannelIndexInfo {
   size_t index_start;
@@ -184,15 +176,8 @@ struct OpDataBuffer {
   }
 };
 
-// typedef GpuCache<SimpleCacheHelper> ThreadCache;
 typedef GpuCache<MultithreadedCacheHelper> ThreadCache;
 
-// typedef graphlab::hopscotch_map<TableRow, uint> LocalStorageIndex;
-// struct LocalStorage {
-  // size_t num_rows;
-  // LocalStorageIndex index;
-  // DataStorage data;
-// };
 typedef DataStorage LocalStorage;
 
 struct OpInfo {
@@ -210,8 +195,8 @@ struct OpInfo {
   size_t num_vals_limit;
   int prestep_handle;
   bool local;
-  bool fetch_local;   /* For local only */
-  bool keep_local;    /* For local only */
+  bool fetch_local;   /* For local access only */
+  bool keep_local;    /* For local access only */
   enum IndexType {
     SINGLE_INDEX,
     DOUBLE_INDEX,
@@ -432,23 +417,12 @@ class ClientLib {
   /* Clock for this client process */
   iter_t current_iteration;
   iter_t fast_clock;
-  // TODO(hengganc): these should be atomic types
 
   /* Server states */
   vector<string> host_list;
   vector<uint> port_list;
   uint tcp_base_port;
   uint num_servers;
-
-  /* Fields for the virtual iteration */
-  /* Use the vector clock to record whether each application thread has 
-   * finished its virtual iteration.
-   * 1 indicates finished, otherwise 0.
-   */
-  VectorClock virtual_iteration_states;
-  bool virtual_iteration_all_finished;
-  boost::mutex virtual_iteration_mutex;
-  boost::condition_variable virtual_iteration_cvar;
 
   /* Log states */
   tbb::tick_count start_time;

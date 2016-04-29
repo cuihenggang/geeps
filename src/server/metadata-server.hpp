@@ -12,8 +12,8 @@
 
 #include <boost/shared_ptr.hpp>
 
-#include "include/geeps-user-defined-types.hpp"
-#include "common/internal-types.hpp"
+#include "geeps-user-defined-types.hpp"
+#include "common/common-util.hpp"
 #include "server-encoder-decoder.hpp"
 
 using boost::shared_ptr;

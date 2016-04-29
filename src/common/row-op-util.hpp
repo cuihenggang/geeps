@@ -7,8 +7,8 @@
 
 #include <vector>
 
-#include "portable-bytes.hpp"
-#include "include/geeps-user-defined-types.hpp"
+#include "geeps-user-defined-types.hpp"
+#include "common/portable-bytes.hpp"
 #include "common/gpu-util/math_functions.hpp"
 
 struct DoubleIndex {

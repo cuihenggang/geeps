@@ -11,7 +11,7 @@
 
 #include <vector>
 
-#include "include/geeps-user-defined-types.hpp"
+#include "geeps-user-defined-types.hpp"
 
 enum Command {
   FIND_ROW,

@@ -11,7 +11,6 @@
 #include <string>
 
 #include "common/wire-protocol.hpp"
-#include "common/internal-types.hpp"
 #include "common/router-handler.hpp"
 #include "common/portable-bytes.hpp"
 #include "clientlib.hpp"

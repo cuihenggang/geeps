@@ -23,11 +23,9 @@
 #include <set>
 #include <map>
 
-#include "include/geeps-user-defined-types.hpp"
-#include "common/internal-types.hpp"
+#include "geeps-user-defined-types.hpp"
 #include "common/common-util.hpp"
 #include "common/row-op-util.hpp"
-#include "common/hopscotch_map.hpp"
 #include "server-encoder-decoder.hpp"
 #include "metadata-server.hpp"
 
@@ -101,7 +99,6 @@ class TabletStorage {
   Stats server_stats;
 
   typedef boost::unordered_map<TableRow, uint> Row2Index;
-  // typedef graphlab::hopscotch_map<TableRow, uint> Row2Index;
 
   typedef boost::unordered_map<iter_t, RowKeys> PendingReadsLog;
   typedef std::vector<PendingReadsLog> MulticlientPendingReadsLog;

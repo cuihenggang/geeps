@@ -13,7 +13,6 @@
 #include <vector>
 #include <string>
 
-#include "include/geeps-user-defined-types.hpp"
 #include "work-puller.hpp"
 
 class BackgroundWorker {
@@ -26,7 +25,7 @@ class BackgroundWorker {
   int add_callback(uint32_t cmd, WorkerCallback callback);
   void pull_work_loop();
   void operator()();
-  /* This function can used as the entry point of a boost thread */
+      /* This function will be used as the entry point of a boost thread */
 
  private:
   boost::shared_ptr<WorkPuller> work_puller;

@@ -12,7 +12,7 @@
 #include <string>
 #include <vector>
 
-#include "common/common-util.hpp"
+#include "common/internal-config.hpp"
 #include "server-encoder-decoder.hpp"
 #include "tablet-server.hpp"
 
