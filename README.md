@@ -2,13 +2,9 @@
 
 GeePS is a parameter server library for GPU applications (such as Caffe).
 
-## Citation
+Reference Paper
+---------------
 
-    @inproceedings{cui2016geeps,
-      title={{GeePS}: Scalable deep learning on distributed {GPUs} with a {GPU}-specialized parameter server},
-      author={Cui, Henggang and Zhang, Hao and Ganger, Gregory R and Gibbons, Phillip B and Xing, Eric P},
-      booktitle={Proceedings of the Eleventh European Conference on Computer Systems},
-      pages={4},
-      year={2016},
-      organization={ACM}
-    }
+Henggang Cui, Hao Zhang, Gregory R. Ganger, Phillip B. Gibbons, and Eric P. Xing.
+[GeePS: Scalable Deep Learning on Distributed GPUs with a GPU-Specialized Parameter Server](https://users.ece.cmu.edu/~hengganc/archive/paper/[eurosys16]geeps.pdf).
+In ACM European Conference on Computer Systems, 2016 (EuroSys'16)
