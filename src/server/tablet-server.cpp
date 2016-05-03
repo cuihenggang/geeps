@@ -165,12 +165,6 @@ void TabletStorage::clock(uint client_id, iter_t clock, uint table_id) {
       CHECK_EQ(new_global_clock, data_table.global_clock + 1);
     }
     data_table.global_clock = new_global_clock;
-    if (data_table.global_clock > config.start_clock) {
-    }
-    if (data_table.global_clock == config.start_clock) {
-      start_time = tbb::tick_count::now();
-      reset_perf_counters();
-    }
 
     /* Send pending read requests */
     process_multiclient_pending_reads(

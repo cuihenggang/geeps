@@ -20,12 +20,9 @@ struct GeePsConfig {
   uint tcp_base_port;
   uint num_comm_channels;
   std::string output_dir;
-  iter_t start_clock;
-  iter_t snapshot_interval;
   iter_t log_interval;
   uint pp_policy;
   uint local_opt;
-  uint static_cache;
   int thread_cache_capacity;
   int gpu_process_cache_capacity;
   int gpu_local_storage_capacity;
@@ -37,10 +34,8 @@ struct GeePsConfig {
     num_tables(1),
     tcp_base_port(9090),
     num_comm_channels(1),
-    output_dir(""),
-    start_clock(0), snapshot_interval(0), log_interval(0),
+    output_dir(""), log_interval(0),
     pp_policy(0), local_opt(1),
-    static_cache(1),
     thread_cache_capacity(-1), gpu_process_cache_capacity(-1),
     gpu_local_storage_capacity(-1),
     gpu_memory_capacity(-1), read_my_writes(0), pinned_cpu_memory(0) {}
@@ -49,37 +44,28 @@ struct GeePsConfig {
 class GeePs {
  public:
   GeePs(uint process_id, const GeePsConfig& config);
+  void Shutdown();
+  std::string GetStats();
+  void StartIterations();
 
-  /* Interfaces for IterStore */
-  std::string json_stats();
-  void thread_start();
-  void thread_stop();
-  void shutdown();
-  iter_t get_clock();
-  void iterate();
-  int virtual_read_batch(
-      uint table_id, const vector<row_idx_t>& row_ids, iter_t staleness,
-      size_t num_vals_limit = std::numeric_limits<size_t>::max());
-  int virtual_postread_batch(int prestep_handle);
-  int virtual_prewrite_batch(
-      uint table_id, const vector<row_idx_t>& row_ids,
-      size_t num_vals_limit = std::numeric_limits<size_t>::max());
-  int virtual_write_batch(int prestep_handle);
-  int virtual_localaccess_batch(
-      const vector<row_idx_t>& row_ids, size_t num_vals_limit, bool fetch);
-  int virtual_postlocalaccess_batch(int prestep_handle, bool keep);
-  int virtual_clock();
-  void finish_virtual_iteration();
+  /* Interfaces for virtual iteration */
+  int VirtualRead(size_t table_id, const vector<size_t>& row_ids, int slack);
+  int VirtualPostRead(int prestep_handle);
+  int VirtualPreUpdate(size_t table_id, const vector<size_t>& row_ids);
+  int VirtualUpdate(int prestep_handle);
+  int VirtualLocalAccess(const vector<size_t>& row_ids, bool fetch);
+  int VirtualPostLocalAccess(int prestep_handle, bool keep);
+  int VirtualClock();
+  void FinishVirtualIteration();
 
-  /* Interfaces for GeePS */
-  void start_opseq();
-  bool read_batch(
-      RowData **buffer_mem_ret, int handle, bool timing = true);
-  void postread_batch(int handle);
-  void preupdate_batch(RowOpVal **updates_mem_ret, int handle, bool stat = true);
-  void update_batch(int handle);
-  bool localaccess_batch(RowData **buffer_mem_ret, int handle);
-  void postlocalaccess_batch(int handle);
+  /* Interfaces for real access */
+  bool Read(int handle, RowData **buffer_ptr);
+  void PostRead(int handle);
+  void PreUpdate(int handle, RowOpVal **buffer_ptr);
+  void Update(int handle);
+  bool LocalAccess(int handle, RowData **buffer_ptr);
+  void PostLocalAccess(int handle);
+  void Clock();
 };
 
 #endif  // defined __geeps_hpp__
