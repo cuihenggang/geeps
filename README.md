@@ -18,6 +18,8 @@ If you use the Ubuntu 14.04 system, you can run the following commands (from gee
 ./scripts/install-caffe-deps-ubuntu14.sh
 ```
 
+Also, please make sure your CUDA library is installed in `/usr/local/cuda`.
+
 After installing the dependencies, you can build GeePS by simply running this command from geeps root directory:
 
 ```
@@ -36,7 +38,7 @@ make -j8
 
 You can run Caffe distributedly across a cluster of machines with GeePS. In this section, we will show you the steps to run Caffe's CIFAR-10 example on two machines.
 
-All commands in this part is executed from the `apps/caffe` directory:
+All commands in this section are executed from the `apps/caffe` directory:
 
 ```
 cd apps/caffe
@@ -64,7 +66,7 @@ Our script will partition the datasets into two parts, one for each machine. You
 ./examples/cifar10/2parts/train_inception.sh
 ```
 
-Happy training!
+Please look at our [wiki](https://github.com/cuihenggang/geeps/wiki) for more details. Happy training!
 
 
 ## Reference Paper
