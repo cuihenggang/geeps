@@ -42,7 +42,14 @@ All commands in this part is executed from the `apps/caffe` directory:
 cd apps/caffe
 ```
 
-You will need to prepare a machine file in `examples/cifar10/2parts', with each line being the host name of one machine. We will use `pdsh' to launch commands on those machines with `ssh' protocol, so please make sure you can `ssh' to those machines without password.
+You will first need to prepare a machine file as `examples/cifar10/2parts/machinefile`, with each line being the host name of one machine. Since we use two machines in this example, this machine file should have two lines, such as:
+
+```
+host0
+host1
+```
+
+We will use `pdsh` to launch commands on those machines with the `ssh` protocol, so please make sure that you can `ssh` to those machines without password.
 
 When you have your machine file in ready, you can run the following command to download and prepare the CIFAR-10 dataset:
 
@@ -51,7 +58,7 @@ When you have your machine file in ready, you can run the following command to d
 ./examples/cifar10/2parts/create_cifar10_pdsh.sh
 ```
 
-You can then training an Inception network on CIFAR-10 data with this command:
+Our script will partition the datasets into two parts, one for each machine. You can then train an Inception network on it with this command:
 
 ```
 ./examples/cifar10/2parts/train_inception.sh
