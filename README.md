@@ -3,15 +3,15 @@
 GeePS is a parameter server library that scales single-machine GPU machine learning applications (such as Caffe) to a cluster of machines.
 
 
-## Download and build GeePS and example application
+## Download and build GeePS and Caffe application
 
-Run the following command to download GeePS and Caffe:
+Run the following command to download GeePS and (our slightly modified) Caffe:
 
 ```
 git clone --recurse-submodules https://github.com/cuihenggang/geeps.git
 ```
 
-If you use the Ubuntu 14.04 system, you can run the following command to install the dependencies (from geeps root directory):
+If you use the Ubuntu 14.04 system, you can run the following commands (from geeps root directory) to install the dependencies:
 
 ```
 ./scripts/install-geeps-deps-ubuntu14.sh
@@ -34,13 +34,13 @@ make -j8
 
 ## Caffe's CIFAR-10 example on two machines
 
-You can run Caffe distributed across a cluster of machines. In this section, we will show you how to run Caffe's CIFAR-10 example on two machines.
+You can run Caffe distributedly across a cluster of machines with GeePS. In this section, we will show you the steps to run Caffe's CIFAR-10 example on two machines.
 
 All commands in this part is executed from the `apps/caffe` directory:
 
 ```
 cd apps/caffe
-'''
+```
 
 You will need to prepare a machine file in `examples/cifar10/2parts', with each line being the host name of one machine. We will use `pdsh' to launch commands on those machines with `ssh' protocol, so please make sure you can `ssh' to those machines without password.
 
@@ -49,13 +49,13 @@ When you have your machine file in ready, you can run the following command to d
 ```
 ./data/cifar10/get_cifar10.sh
 ./examples/cifar10/2parts/create_cifar10_pdsh.sh
-'''
+```
 
 You can then training an Inception network on CIFAR-10 data with this command:
 
 ```
 ./examples/cifar10/2parts/train_inception.sh
-'''
+```
 
 Happy training!
 
