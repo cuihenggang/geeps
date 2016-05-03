@@ -15,9 +15,11 @@ using boost::shared_ptr;
 GeePs::GeePs(
     uint process_id, const GeePsConfig& config) {
   ClientLib::CreateInstance(process_id, config);
+  client_lib->thread_start();
 }
 
 void GeePs::Shutdown() {
+  client_lib->thread_stop();
   client_lib->shutdown();
 }
 

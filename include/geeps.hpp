@@ -36,9 +36,9 @@ struct GeePsConfig {
     num_comm_channels(1),
     output_dir(""), log_interval(0),
     pp_policy(0), local_opt(1),
-    thread_cache_capacity(-1), gpu_process_cache_capacity(-1),
-    gpu_local_storage_capacity(-1),
-    gpu_memory_capacity(-1), read_my_writes(0), pinned_cpu_memory(0) {}
+    thread_cache_capacity(0), gpu_process_cache_capacity(-3),
+    gpu_local_storage_capacity(-3),
+    gpu_memory_capacity(-1), read_my_writes(0), pinned_cpu_memory(1) {}
 };
 
 class GeePs {
