@@ -21,14 +21,16 @@ struct GeePsConfig {
   uint num_comm_channels;
   std::string output_dir;
   iter_t log_interval;
-  uint pp_policy;
-  uint local_opt;
-  int thread_cache_capacity;
-  int gpu_process_cache_capacity;
-  int gpu_local_storage_capacity;
-  int gpu_memory_capacity;
-  int read_my_writes;
+  int pp_policy;
+  int local_opt;
+  size_t gpu_memory_capacity;
+  int mm_warning_level;
+      /* 0: no warning
+       * 1: guarantee double buffering for thread cache
+       * 2: make sure all local data in GPU memory
+       * 3: make sure all parameter cache in GPU memory */
   int pinned_cpu_memory;
+  int read_my_writes;
 
   GeePsConfig() :
     num_tables(1),
@@ -36,9 +38,10 @@ struct GeePsConfig {
     num_comm_channels(1),
     output_dir(""), log_interval(0),
     pp_policy(0), local_opt(1),
-    thread_cache_capacity(0), gpu_process_cache_capacity(-3),
-    gpu_local_storage_capacity(-3),
-    gpu_memory_capacity(-1), read_my_writes(0), pinned_cpu_memory(1) {}
+    gpu_memory_capacity(std::numeric_limits<size_t>::max()),
+    mm_warning_level(1),
+    pinned_cpu_memory(1),
+    read_my_writes(0) {}
 };
 
 class GeePs {

@@ -47,8 +47,6 @@ ClientLib::ClientLib(
   for (uint i = 0; i < num_channels; i++) {
     init_comm_channel(i, config);
   }
-
-  start_time = tbb::tick_count::now();
 }
 
 void ClientLib::init_comm_channel(

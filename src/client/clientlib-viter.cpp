@@ -95,148 +95,21 @@ void ClientLib::finish_virtual_iteration() {
   /* Summarize information */
   vi_thread_summarize();
 
-  vi_process_decisions();
+  vi_process_finalize();
 
   /* Make decisions based on the virtual iteration for the current thread */
-  vi_thread_decisions();
+  vi_thread_finalize();
 }
 
 void ClientLib::vi_thread_summarize() {
-  ThreadData& thread_data_ref = *thread_data;
-
   /* Create local storage */
   vi_create_local_storage();
 
-  OpSeq& opseq = thread_data_ref.opseq;
-  RowKeys& row_keys_cpu = thread_data_ref.row_keys_cpu;
-  RowKeys& row_keys_gpu = thread_data_ref.row_keys_gpu;
-  boost::unordered_map<TableRow, bool> existing_keys;
-
-  iter_t pf_slack = 0;
-  for (size_t i = 0; i < opseq.size(); i++) {
-    OpInfo& opinfo = opseq[i];
-    if (!opinfo.local && opinfo.type == OpInfo::READ) {
-      if (opinfo.slack > pf_slack) {
-        CHECK_EQ(pf_slack, 0);
-        pf_slack = opinfo.slack;
-      }
-    }
-  }
-  size_t num_oplog_entries = 1;
-  if (config.read_my_writes) {
-    /* If we don't do read-my-writes, just one entry is enough */
-    /* If we do read-my-writes, we need slack + 1 entries.
-     * We always create the oplog entry of the current clock
-     * at the first INC operation.
-     * If the application only starts calling INC after finishing reading all
-     * parameter data for the current clock, we need only (slack + 1)
-     * oplog entries. Otherwise, we need (slack + 2). */
-    num_oplog_entries = static_cast<size_t>(pf_slack) + 1;
-  }
-  size_t entries_per_row = 1 + num_oplog_entries;
-      /* One process cache entry and num_oplog_entries oplog entries */
-
-  /* Decide process cache data assignment */
-  row_keys_gpu.clear();
-  row_keys_cpu.clear();
-  CHECK_LE(thread_data_ref.ngr_used, config.gpu_memory_capacity);
-  size_t ngr_param_cache_capacity =
-      config.gpu_memory_capacity - thread_data_ref.ngr_used;
-  if (config.gpu_process_cache_capacity == 0) {
-    ngr_param_cache_capacity = 0;
-  }
-  for (size_t i = 0; i < opseq.size(); i++) {
-    OpInfo& opinfo = opseq[i];
-    if (opinfo.type == OpInfo::CLOCK) {
-      continue;
-    }
-    if (!opinfo.local && opinfo.rows.size()) {
-      TableRow first_key(opinfo.table, opinfo.rows[0]);
-      if (!existing_keys.count(first_key)) {
-        /* New keys */
-        if ((row_keys_gpu.size() + opinfo.rows.size()) * entries_per_row
-              <= ngr_param_cache_capacity) {
-          /* Insert to GPU key list */
-          for (size_t j = 0; j < opinfo.rows.size(); j++) {
-            TableRow table_row(opinfo.table, opinfo.rows[j]);
-            CHECK(!existing_keys.count(table_row));
-            RowKey row_key(opinfo.table, opinfo.rows[j]);
-            row_keys_gpu.push_back(row_key);
-            existing_keys[table_row] = true;
-            opinfo.data_location = DataStorage::GPU;
-          }
-        } else {
-          /* Insert to CPU key list */
-          CHECK(config.gpu_process_cache_capacity != -1);
-          for (size_t j = 0; j < opinfo.rows.size(); j++) {
-            TableRow table_row(opinfo.table, opinfo.rows[j]);
-            CHECK(!existing_keys.count(table_row));
-            RowKey row_key(opinfo.table, opinfo.rows[j]);
-            row_keys_cpu.push_back(row_key);
-            existing_keys[table_row] = false;
-            opinfo.data_location = DataStorage::CPU;
-          }
-        }
-      } else {
-        /* The keys exist */
-        /* GPU or CPU */
-        opinfo.data_location =
-            existing_keys[first_key] ? DataStorage::GPU : DataStorage::CPU;
-        for (size_t j = 0; j < opinfo.rows.size(); j++) {
-          TableRow table_row(opinfo.table, opinfo.rows[j]);
-          CHECK(existing_keys.count(table_row));
-          CHECK_EQ(existing_keys[table_row],
-              opinfo.data_location == DataStorage::GPU);
-        }
-      }
-    }
-  }
+  /* Decide parameter cache placement */
+  vi_decide_param_cache();
 
   /* Create thread cache */
-  /* First decide how much memory the process cache/oplog will use */
-  thread_data_ref.ngr_used += row_keys_gpu.size() * entries_per_row;
-  CHECK_LE(thread_data_ref.ngr_used, config.gpu_memory_capacity);
-  if (config.thread_cache_capacity != 0) {
-    /* Use the rest available GPU memory as thread cache */
-    thread_data_ref.thread_cache_size +=
-        (config.gpu_memory_capacity - thread_data_ref.ngr_used);
-  }
-  // cout << "thread_cache_size = " << thread_data_ref.thread_cache_size << endl;
-  ThreadCache& thread_cache = thread_data_ref.thread_cache;
-  thread_cache.init(thread_data_ref.thread_cache_size);
-
-  /* Set info for all channels */
-  for (size_t i = 0; i < comm_channels.size(); i++) {
-    comm_channels[i].pf_slack = pf_slack;
-    comm_channels[i].num_oplog_entries = num_oplog_entries;
-  }
-
-  /* Divide rows to channels.
-   * Here we assume that all workers access the same set of rows,
-   * so even though they decide row_id to channel_id mapping independently,
-   * this decision is consistent across all workers. */
-  // cout << "row_keys_gpu.size() = " << row_keys_gpu.size() << endl;
-  // cout << "row_keys_cpu.size() = " << row_keys_cpu.size() << endl;
-  rows_per_channel.resize(config.num_tables);
-  vector<size_t> row_counts(config.num_tables);
-  for (uint table_id = 0; table_id < config.num_tables; table_id++) {
-    row_counts[table_id] = 0;
-  }
-  for (size_t i = 0; i < row_keys_gpu.size(); i++) {
-    CHECK_LT(row_keys_gpu[i].table, row_counts.size());
-    row_counts[row_keys_gpu[i].table]++;
-  }
-  for (size_t i = 0; i < row_keys_cpu.size(); i++) {
-    CHECK_LT(row_keys_cpu[i].table, row_counts.size());
-    row_counts[row_keys_cpu[i].table]++;
-  }
-  for (uint table_id = 0; table_id < config.num_tables; table_id++) {
-    rows_per_channel[table_id] =
-      (row_counts[table_id] + comm_channels.size() - 1)
-          / comm_channels.size();
-    // cout << "rows_per_channel of " << table_id
-         // << " = " << rows_per_channel[table_id] << endl;
-  }
+  vi_create_thread_cache();
 }
 
 struct LocalKeyBatchInfo {
@@ -277,8 +150,9 @@ void ClientLib::vi_create_local_storage() {
   typedef boost::unordered_map<TableRow, ParamKeyBatchInfo> ParamKeyBatchMap;
   ParamKeyBatchMap param_key_batches;
 
+  ngr_capacity = config.gpu_memory_capacity / sizeof(RowData);
   size_t ngr_used = 0;
-  size_t ngr_left = config.gpu_memory_capacity;
+  size_t ngr_left = ngr_capacity;
   for (size_t i = 0; i < opseq.size(); i++) {
     OpInfo& opinfo = opseq[i];
     if (opinfo.local && opinfo.type == OpInfo::READ) {
@@ -289,11 +163,6 @@ void ClientLib::vi_create_local_storage() {
         LocalKeyBatchInfo& key_batch_info = local_key_batches[first_key];
         key_batch_info.table = opinfo.table;
         key_batch_info.rows = opinfo.rows;
-        if (config.gpu_local_storage_capacity == -2) {
-          /* Keep all local storage in GPU memory */
-          key_batch_info.gpu = true;
-          ngr_used += key_batch_info.rows.size();
-        }
       }
       LocalKeyBatchInfo& key_batch_info = local_key_batches[first_key];
       CHECK_EQ(key_batch_info.rows.size(), opinfo.rows.size());
@@ -338,9 +207,7 @@ void ClientLib::vi_create_local_storage() {
   size_t nr_being_used_peak;
   size_t nr_used_all;
   size_t max_nr_each_access;
-  /* We should have already added all data in GPU memory if
-   * "gpu_local_storage_capacity == -2" is true. */
-  bool all_data_in_gpu = config.gpu_local_storage_capacity == -2;
+  bool all_data_in_gpu = false;
   while (true) {
     size_t ngr_increased = 0;
     /* Calculate the peak size */
@@ -416,18 +283,10 @@ void ClientLib::vi_create_local_storage() {
       /* All data has been assigned to GPU memory */
       break;
     }
-    if (config.gpu_local_storage_capacity == 0) {
-      /* We don't want any data to be pinned in GPU memory */
-      break;
-    }
-    size_t tmp_gpu_capacity = config.gpu_memory_capacity;
-    if (tmp_gpu_capacity < 0) {
-      tmp_gpu_capacity = ngr_needed_for_local_storage + nr_being_used_peak * 2;
-    }
     /* Thread cache will be at least twice the size of peak access */
-    CHECK_GE(tmp_gpu_capacity, nr_being_used_peak * 2);
+    CHECK_GE(ngr_capacity, nr_being_used_peak * 2);
     if (ngr_needed_for_fetchkeep_local_storage + nr_being_used_peak * 2
-        <= tmp_gpu_capacity) {
+        <= ngr_capacity) {
       /* Keep all the fetchkeep local storage in GPU */
       // cout << "Keep all fetchkeep local storage in GPU\n";
       for (LocalKeyBatchMap::iterator it = local_key_batches.begin();
@@ -440,9 +299,6 @@ void ClientLib::vi_create_local_storage() {
           key_batch_info.gpu = true;
           ngr_used += key_batch_info.rows.size();
         }
-      }
-      if (config.gpu_local_storage_capacity != -2) {
-        CHECK_EQ(ngr_used, ngr_needed_for_fetchkeep_local_storage);
       }
       all_data_in_gpu = true;
       /* Do not break out of the while(),
@@ -474,8 +330,9 @@ void ClientLib::vi_create_local_storage() {
             if (size_after_changing_peak < nr_being_used_second_peak) {
               size_after_changing_peak = nr_being_used_second_peak;
             }
-            if (ngr_used + key_batch_info.rows.size() + size_after_changing_peak * 2
-                <= tmp_gpu_capacity) {
+            if (ngr_used + key_batch_info.rows.size()
+                + size_after_changing_peak * 2
+                    <= ngr_capacity) {
               key_batch_info.gpu = true;
               ngr_used += key_batch_info.rows.size();
               ngr_increased++;
@@ -500,7 +357,7 @@ void ClientLib::vi_create_local_storage() {
           }
           if (key_batch_info.num_fetches || key_batch_info.num_keeps) {
             if (ngr_used + key_batch_info.rows.size() + nr_being_used_peak * 2
-                <= tmp_gpu_capacity) {
+                <= ngr_capacity) {
               key_batch_info.gpu = true;
               ngr_used += key_batch_info.rows.size();
               ngr_increased++;
@@ -509,7 +366,7 @@ void ClientLib::vi_create_local_storage() {
         }
       }
       if (!ngr_increased) {
-        CHECK(config.gpu_local_storage_capacity != -1);
+        CHECK_LT(config.mm_warning_level, 2);
         break;
       }
     }
@@ -598,26 +455,155 @@ void ClientLib::vi_create_local_storage() {
 
   /* Make a thread cache, which is twice the peak size */
   size_t thread_cache_size;
-  ngr_left = config.gpu_memory_capacity - ngr_used;
+  ngr_left = ngr_capacity - ngr_used;
   thread_cache_size = nr_being_used_peak * 2;
       /* Double the peak size */
-  if (config.thread_cache_capacity == -2) {
-    CHECK_LE(thread_cache_size, ngr_left);
-  }
   if (thread_cache_size > ngr_left) {
-    CHECK_EQ(config.gpu_local_storage_capacity, 0);
+    CHECK_LT(config.mm_warning_level, 1);
     CHECK_EQ(thread_data_ref.ngr_used, 0);
-    CHECK_EQ(config.gpu_memory_capacity, ngr_left);
+    CHECK_EQ(ngr_capacity, ngr_left);
     cout << "*** WARNING: not enough space for double buffering\n";
     thread_cache_size = ngr_left;
   }
   CHECK_GE(thread_cache_size, nr_being_used_peak);
   thread_data_ref.thread_cache_size = thread_cache_size;
   thread_data_ref.ngr_used += thread_cache_size;
-  CHECK_LE(thread_data_ref.ngr_used, config.gpu_memory_capacity);
+  CHECK_LE(thread_data_ref.ngr_used, ngr_capacity);
 }
 
-void ClientLib::vi_process_channel_table_decisions(
+void ClientLib::vi_decide_param_cache() {
+  ThreadData& thread_data_ref = *thread_data;
+  OpSeq& opseq = thread_data_ref.opseq;
+
+  /* Decide the amount of memory used for each parameter cache entry */
+  iter_t pf_slack = 0;
+  for (size_t i = 0; i < opseq.size(); i++) {
+    OpInfo& opinfo = opseq[i];
+    if (!opinfo.local && opinfo.type == OpInfo::READ) {
+      if (opinfo.slack > pf_slack) {
+        CHECK_EQ(pf_slack, 0);
+        pf_slack = opinfo.slack;
+      }
+    }
+  }
+  size_t num_oplog_entries = 1;
+  if (config.read_my_writes) {
+    /* If we don't do read-my-writes, just one entry is enough */
+    /* If we do read-my-writes, we need slack + 1 entries.
+     * We always create the oplog entry of the current clock
+     * at the first INC operation.
+     * If the application only starts calling INC after finishing reading all
+     * parameter data for the current clock, we need only (slack + 1)
+     * oplog entries. Otherwise, we need (slack + 2). */
+    num_oplog_entries = static_cast<size_t>(pf_slack) + 1;
+  }
+  /* Set info for all channels */
+  for (size_t i = 0; i < comm_channels.size(); i++) {
+    comm_channels[i].pf_slack = pf_slack;
+    comm_channels[i].num_oplog_entries = num_oplog_entries;
+  }
+  size_t entries_per_row = 1 + num_oplog_entries;
+      /* One process cache entry and num_oplog_entries oplog entries */
+
+  /* Decide process cache data placement */
+  RowKeys& row_keys_cpu = thread_data_ref.row_keys_cpu;
+  RowKeys& row_keys_gpu = thread_data_ref.row_keys_gpu;
+  boost::unordered_map<TableRow, bool> existing_keys;
+  row_keys_gpu.clear();
+  row_keys_cpu.clear();
+  CHECK_LE(thread_data_ref.ngr_used, ngr_capacity);
+  size_t ngr_param_cache_capacity = ngr_capacity - thread_data_ref.ngr_used;
+  for (size_t i = 0; i < opseq.size(); i++) {
+    OpInfo& opinfo = opseq[i];
+    if (opinfo.type == OpInfo::CLOCK) {
+      continue;
+    }
+    if (!opinfo.local && opinfo.rows.size()) {
+      TableRow first_key(opinfo.table, opinfo.rows[0]);
+      if (!existing_keys.count(first_key)) {
+        /* New keys */
+        if ((row_keys_gpu.size() + opinfo.rows.size()) * entries_per_row
+              <= ngr_param_cache_capacity) {
+          /* Insert to GPU key list */
+          for (size_t j = 0; j < opinfo.rows.size(); j++) {
+            TableRow table_row(opinfo.table, opinfo.rows[j]);
+            CHECK(!existing_keys.count(table_row));
+            RowKey row_key(opinfo.table, opinfo.rows[j]);
+            row_keys_gpu.push_back(row_key);
+            existing_keys[table_row] = true;
+            opinfo.data_location = DataStorage::GPU;
+          }
+        } else {
+          /* Insert to CPU key list */
+          CHECK_LT(config.mm_warning_level, 3);
+          for (size_t j = 0; j < opinfo.rows.size(); j++) {
+            TableRow table_row(opinfo.table, opinfo.rows[j]);
+            CHECK(!existing_keys.count(table_row));
+            RowKey row_key(opinfo.table, opinfo.rows[j]);
+            row_keys_cpu.push_back(row_key);
+            existing_keys[table_row] = false;
+            opinfo.data_location = DataStorage::CPU;
+          }
+        }
+      } else {
+        /* The keys exist */
+        /* GPU or CPU */
+        opinfo.data_location =
+            existing_keys[first_key] ? DataStorage::GPU : DataStorage::CPU;
+        for (size_t j = 0; j < opinfo.rows.size(); j++) {
+          TableRow table_row(opinfo.table, opinfo.rows[j]);
+          CHECK(existing_keys.count(table_row));
+          CHECK_EQ(existing_keys[table_row],
+              opinfo.data_location == DataStorage::GPU);
+        }
+      }
+    }
+  }
+
+  /* Update memory usage */
+  thread_data_ref.ngr_used += row_keys_gpu.size() * entries_per_row;
+  CHECK_LE(thread_data_ref.ngr_used, ngr_capacity);
+
+  /* Divide rows to channels.
+   * Here we assume that all workers access the same set of rows,
+   * so even though they decide row_id to channel_id mapping independently,
+   * this decision is consistent across all workers. */
+  // cout << "row_keys_gpu.size() = " << row_keys_gpu.size() << endl;
+  // cout << "row_keys_cpu.size() = " << row_keys_cpu.size() << endl;
+  rows_per_channel.resize(config.num_tables);
+  vector<size_t> row_counts(config.num_tables);
+  for (uint table_id = 0; table_id < config.num_tables; table_id++) {
+    row_counts[table_id] = 0;
+  }
+  for (size_t i = 0; i < row_keys_gpu.size(); i++) {
+    CHECK_LT(row_keys_gpu[i].table, row_counts.size());
+    row_counts[row_keys_gpu[i].table]++;
+  }
+  for (size_t i = 0; i < row_keys_cpu.size(); i++) {
+    CHECK_LT(row_keys_cpu[i].table, row_counts.size());
+    row_counts[row_keys_cpu[i].table]++;
+  }
+  for (uint table_id = 0; table_id < config.num_tables; table_id++) {
+    rows_per_channel[table_id] =
+      (row_counts[table_id] + comm_channels.size() - 1)
+          / comm_channels.size();
+    // cout << "rows_per_channel of " << table_id
+         // << " = " << rows_per_channel[table_id] << endl;
+  }
+}
+
+void ClientLib::vi_create_thread_cache() {
+  ThreadData& thread_data_ref = *thread_data;
+  /* Use the rest available GPU memory as thread cache */
+  CHECK_LE(thread_data_ref.ngr_used, ngr_capacity);
+  thread_data_ref.thread_cache_size +=
+      (ngr_capacity - thread_data_ref.ngr_used);
+  // cout << "thread_cache_size = " << thread_data_ref.thread_cache_size << endl;
+  ThreadCache& thread_cache = thread_data_ref.thread_cache;
+  thread_cache.init(thread_data_ref.thread_cache_size);
+}
+
+void ClientLib::vi_process_channel_table_finalize(
     ThreadData& thread_data_ref, uint channel_id, uint table_id, bool gpu) {
   RowKeys& access_row_keys =
       gpu ? thread_data_ref.row_keys_gpu :
@@ -694,11 +680,11 @@ void ClientLib::vi_process_channel_table_decisions(
   }
 }
 
-void ClientLib::vi_process_channel_decisions(
+void ClientLib::vi_process_channel_finalize(
     ThreadData& thread_data_ref, uint channel_id, bool gpu) {
   CommunicationChannel& comm_channel = comm_channels[channel_id];
   for (uint table_id = 0; table_id < config.num_tables; table_id++) {
-    vi_process_channel_table_decisions(
+    vi_process_channel_table_finalize(
         thread_data_ref, channel_id, table_id, gpu);
   }
 
@@ -719,7 +705,7 @@ void ClientLib::vi_process_channel_decisions(
   }
 }
 
-void ClientLib::vi_process_decisions() {
+void ClientLib::vi_process_finalize() {
   ThreadData& thread_data_ref = *thread_data;
   size_t thread_id = thread_data_ref.thread_id;
   if (nr_threads >= num_channels) {
@@ -733,9 +719,9 @@ void ClientLib::vi_process_decisions() {
     if (channel_id >= num_channels) {
       return;
     }
-    vi_process_channel_decisions(
+    vi_process_channel_finalize(
         thread_data_ref, channel_id, false /* cpu */);
-    vi_process_channel_decisions(
+    vi_process_channel_finalize(
         thread_data_ref, channel_id, true /* gpu */);
   } else {
     size_t div = num_channels / nr_threads;
@@ -743,15 +729,15 @@ void ClientLib::vi_process_decisions() {
     size_t start = div * thread_id + (res > thread_id ? thread_id : res);
     size_t size = div + (res > thread_id ? 1 : 0);
     for (uint channel_id = start; channel_id < start + size; channel_id++) {
-      vi_process_channel_decisions(
+      vi_process_channel_finalize(
           thread_data_ref, channel_id, false /* cpu */);
-      vi_process_channel_decisions(
+      vi_process_channel_finalize(
           thread_data_ref, channel_id, true /* gpu */);
     }
   }
 }
 
-void ClientLib::vi_thread_decisions() {
+void ClientLib::vi_thread_finalize() {
   ThreadData& thread_data_ref = *thread_data;
   OpSeq& opseq = thread_data_ref.opseq;
   

@@ -404,9 +404,6 @@ class ClientLib {
 
   uint process_id;
 
-  /* Data storage */
-  std::map<std::string, table_id_t> table_directory;
-
   /* Thread_management */
   boost::mutex global_mutex;
   boost::condition_variable global_cvar;
@@ -424,9 +421,8 @@ class ClientLib {
   uint tcp_base_port;
   uint num_servers;
 
-  /* Log states */
-  tbb::tick_count start_time;
-  tbb::tick_count first_come_time;
+  /* Memory usage */
+  size_t ngr_capacity;
 
   /* Config */
   const GeePsConfig config;
@@ -484,13 +480,15 @@ class ClientLib {
 
   void vi_thread_summarize();
   void vi_create_local_storage();
-  void vi_create_double_index(OpInfo& opinfo);
-  void vi_process_channel_decisions(
+  void vi_decide_param_cache();
+  void vi_create_thread_cache();
+  void vi_process_channel_finalize(
       ThreadData& thread_data_ref, uint channel_id, bool gpu);
-  void vi_process_channel_table_decisions(
+  void vi_process_channel_table_finalize(
       ThreadData& thread_data_ref, uint channel_id, uint table_id, bool gpu);
-  void vi_process_decisions();
-  void vi_thread_decisions();
+  void vi_process_finalize();
+  void vi_thread_finalize();
+  void vi_create_double_index(OpInfo& opinfo);
 
  public:
   static void CreateInstance(uint process_id, const GeePsConfig& config) {
