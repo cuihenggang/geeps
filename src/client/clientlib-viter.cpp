@@ -201,7 +201,7 @@ void ClientLib::vi_thread_summarize() {
     thread_data_ref.thread_cache_size +=
         (config.gpu_memory_capacity - thread_data_ref.ngr_used);
   }
-  cout << "thread_cache_size = " << thread_data_ref.thread_cache_size << endl;
+  // cout << "thread_cache_size = " << thread_data_ref.thread_cache_size << endl;
   ThreadCache& thread_cache = thread_data_ref.thread_cache;
   thread_cache.init(thread_data_ref.thread_cache_size);
 
@@ -215,8 +215,8 @@ void ClientLib::vi_thread_summarize() {
    * Here we assume that all workers access the same set of rows,
    * so even though they decide row_id to channel_id mapping independently,
    * this decision is consistent across all workers. */
-  cout << "row_keys_gpu.size() = " << row_keys_gpu.size() << endl;
-  cout << "row_keys_cpu.size() = " << row_keys_cpu.size() << endl;
+  // cout << "row_keys_gpu.size() = " << row_keys_gpu.size() << endl;
+  // cout << "row_keys_cpu.size() = " << row_keys_cpu.size() << endl;
   rows_per_channel.resize(config.num_tables);
   vector<size_t> row_counts(config.num_tables);
   for (uint table_id = 0; table_id < config.num_tables; table_id++) {
@@ -234,8 +234,8 @@ void ClientLib::vi_thread_summarize() {
     rows_per_channel[table_id] =
       (row_counts[table_id] + comm_channels.size() - 1)
           / comm_channels.size();
-    cout << "rows_per_channel of " << table_id
-         << " = " << rows_per_channel[table_id] << endl;
+    // cout << "rows_per_channel of " << table_id
+         // << " = " << rows_per_channel[table_id] << endl;
   }
 }
 
@@ -329,10 +329,10 @@ void ClientLib::vi_create_local_storage() {
       ngr_needed_for_fetchkeep_local_storage += key_batch_info.rows.size();
     }
   }
-  cout << "ngr_needed_for_local_storage = "
-       << ngr_needed_for_local_storage << endl;
-  cout << "ngr_needed_for_fetchkeep_local_storage = "
-       << ngr_needed_for_fetchkeep_local_storage << endl;
+  // cout << "ngr_needed_for_local_storage = "
+       // << ngr_needed_for_local_storage << endl;
+  // cout << "ngr_needed_for_fetchkeep_local_storage = "
+       // << ngr_needed_for_fetchkeep_local_storage << endl;
 
   /* Decide GPU local storage rows */
   size_t nr_being_used_peak;
@@ -407,10 +407,11 @@ void ClientLib::vi_create_local_storage() {
         CHECK_GE(nr_being_used_now, 0);
       }
     }
-    cout << "nr_being_used_peak = " << nr_being_used_peak << endl;
-    cout << "max_peak_start = " << max_peak_start << endl;
-    cout << "nr_being_used_second_peak = " << nr_being_used_second_peak << endl;
-    cout << "second_peak_start = " << second_peak_start << endl;
+    CHECK_NE(second_peak_start, second_peak_start + 1);
+    // cout << "nr_being_used_peak = " << nr_being_used_peak << endl;
+    // cout << "max_peak_start = " << max_peak_start << endl;
+    // cout << "nr_being_used_second_peak = " << nr_being_used_second_peak << endl;
+    // cout << "second_peak_start = " << second_peak_start << endl;
     if (all_data_in_gpu) {
       /* All data has been assigned to GPU memory */
       break;
@@ -428,7 +429,7 @@ void ClientLib::vi_create_local_storage() {
     if (ngr_needed_for_fetchkeep_local_storage + nr_being_used_peak * 2
         <= tmp_gpu_capacity) {
       /* Keep all the fetchkeep local storage in GPU */
-      cout << "Keep all fetchkeep local storage in GPU\n";
+      // cout << "Keep all fetchkeep local storage in GPU\n";
       for (LocalKeyBatchMap::iterator it = local_key_batches.begin();
            it != local_key_batches.end(); it++) {
         LocalKeyBatchInfo& key_batch_info = it->second;
@@ -479,7 +480,7 @@ void ClientLib::vi_create_local_storage() {
               ngr_used += key_batch_info.rows.size();
               ngr_increased++;
               peak_changed = true;
-              cout << "peak changed" << endl;
+              // cout << "peak changed" << endl;
               break;
             }
           }
@@ -513,7 +514,7 @@ void ClientLib::vi_create_local_storage() {
       }
     }
   }
-  cout << "nr_being_used_peak = " << nr_being_used_peak << endl;
+  // cout << "nr_being_used_peak = " << nr_being_used_peak << endl;
   thread_data_ref.ngr_used = ngr_used;
 
   /* Make GPU local storage key list */
@@ -543,12 +544,12 @@ void ClientLib::vi_create_local_storage() {
   }
 
   /* Create GPU local storage */
-  cout << "local_row_keys_gpu.size() = " << local_row_keys_gpu.size() << endl;
+  // cout << "local_row_keys_gpu.size() = " << local_row_keys_gpu.size() << endl;
   DataStorage& local_storage_gpu = thread_data_ref.local_storage_gpu;
   local_storage_gpu.init(local_row_keys_gpu.size(), DataStorage::GPU);
   RowData *local_storage_ptr_gpu = local_storage_gpu.data();
   /* Create CPU local storage */
-  cout << "local_row_keys_cpu.size() = " << local_row_keys_cpu.size() << endl;
+  // cout << "local_row_keys_cpu.size() = " << local_row_keys_cpu.size() << endl;
   DataStorage& local_storage_cpu = thread_data_ref.local_storage_cpu;
   if (config.pinned_cpu_memory) {
     local_storage_cpu.init(local_row_keys_cpu.size(), DataStorage::PINNED_CPU);
@@ -593,7 +594,7 @@ void ClientLib::vi_create_local_storage() {
          << endl;
   }
   thread_data_ref.cpu_buffer_size = size;
-  cout << "max_nr_each_access = " << max_nr_each_access << endl;
+  // cout << "max_nr_each_access = " << max_nr_each_access << endl;
 
   /* Make a thread cache, which is twice the peak size */
   size_t thread_cache_size;
