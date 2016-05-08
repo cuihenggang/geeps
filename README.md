@@ -1,5 +1,7 @@
 # GeePS
 
+[![License](https://img.shields.io/badge/license-BSD-blue.svg)](LICENSE)
+
 GeePS is a parameter server library that scales single-machine GPU machine learning applications (such as Caffe) to a cluster of machines.
 
 
