@@ -87,10 +87,12 @@ void ClientLib::init_comm_channel(
   cublasHandle_t& cublas_handle_recv = comm_channel.cublas_handle_recv;
   cudaStream_t& cuda_stream_send = comm_channel.cuda_stream_send;
   cublasHandle_t& cublas_handle_send = comm_channel.cublas_handle_send;
-  CUDA_CHECK(cudaStreamCreate(&cuda_stream_recv));
+  CUDA_CHECK(cudaStreamCreateWithFlags(
+      &cuda_stream_recv, cudaStreamNonBlocking));
   CUBLAS_CHECK(cublasCreate(&cublas_handle_recv));
   CUBLAS_CHECK(cublasSetStream(cublas_handle_recv, cuda_stream_recv));
-  CUDA_CHECK(cudaStreamCreate(&cuda_stream_send));
+  CUDA_CHECK(cudaStreamCreateWithFlags(
+      &cuda_stream_send, cudaStreamNonBlocking));
   CUBLAS_CHECK(cublasCreate(&cublas_handle_send));
   CUBLAS_CHECK(cublasSetStream(cublas_handle_send, cuda_stream_send));
 
@@ -171,7 +173,8 @@ void ClientLib::thread_start() {
   thread_data_ref.iteration = INITIAL_CLOCK;
 
   /* Init cuda stream and cublas handle */
-  cudaStreamCreate(&thread_data_ref.cuda_stream);
+  CUDA_CHECK(cudaStreamCreateWithFlags(
+      &thread_data_ref.cuda_stream, cudaStreamNonBlocking));
   cublasCreate(&thread_data_ref.cublas_handle);
   cublasSetStream(thread_data_ref.cublas_handle, thread_data_ref.cuda_stream);
 

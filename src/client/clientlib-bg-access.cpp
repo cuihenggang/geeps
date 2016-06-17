@@ -96,7 +96,7 @@ void ClientLib::alloc_worker_entry(OpSeqWorkerInfo& worker_info) {
   }
   cudaStream_t cuda_stream;
   cublasHandle_t cublas_handle;
-  CUDA_CHECK(cudaStreamCreate(&cuda_stream));
+  CUDA_CHECK(cudaStreamCreateWithFlags(&cuda_stream, cudaStreamNonBlocking));
   CUBLAS_CHECK(cublasCreate(&cublas_handle));
   CUBLAS_CHECK(cublasSetStream(cublas_handle, cuda_stream));
   tbb::tick_count tick_start;
@@ -153,7 +153,7 @@ void ClientLib::reclaim_worker_entry(OpSeqWorkerInfo& worker_info) {
   }
   cudaStream_t cuda_stream;
   cublasHandle_t cublas_handle;
-  CUDA_CHECK(cudaStreamCreate(&cuda_stream));
+  CUDA_CHECK(cudaStreamCreateWithFlags(&cuda_stream, cudaStreamNonBlocking));
   CUBLAS_CHECK(cublasCreate(&cublas_handle));
   CUBLAS_CHECK(cublasSetStream(cublas_handle, cuda_stream));
   while (true) {
