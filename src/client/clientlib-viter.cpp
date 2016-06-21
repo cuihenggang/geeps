@@ -427,12 +427,12 @@ void ClientLib::vi_create_local_storage() {
   }
 
   /* Create GPU local storage */
-  // cout << "local_row_keys_gpu.size() = " << local_row_keys_gpu.size() << endl;
+  cout << "local_row_keys_gpu.size() = " << local_row_keys_gpu.size() << endl;
   DataStorage& local_storage_gpu = thread_data_ref.local_storage_gpu;
   local_storage_gpu.init(local_row_keys_gpu.size(), DataStorage::GPU);
   RowData *local_storage_ptr_gpu = local_storage_gpu.data();
   /* Create CPU local storage */
-  // cout << "local_row_keys_cpu.size() = " << local_row_keys_cpu.size() << endl;
+  cout << "local_row_keys_cpu.size() = " << local_row_keys_cpu.size() << endl;
   DataStorage& local_storage_cpu = thread_data_ref.local_storage_cpu;
   if (config.pinned_cpu_memory) {
     local_storage_cpu.init(local_row_keys_cpu.size(), DataStorage::PINNED_CPU);
@@ -594,8 +594,8 @@ void ClientLib::vi_decide_param_cache() {
    * Here we assume that all workers access the same set of rows,
    * so even though they decide row_id to channel_id mapping independently,
    * this decision is consistent across all workers. */
-  // cout << "row_keys_gpu.size() = " << row_keys_gpu.size() << endl;
-  // cout << "row_keys_cpu.size() = " << row_keys_cpu.size() << endl;
+  cout << "row_keys_gpu.size() = " << row_keys_gpu.size() << endl;
+  cout << "row_keys_cpu.size() = " << row_keys_cpu.size() << endl;
   rows_per_channel.resize(config.num_tables);
   vector<size_t> row_counts(config.num_tables);
   for (uint table_id = 0; table_id < config.num_tables; table_id++) {
@@ -624,7 +624,7 @@ void ClientLib::vi_create_thread_cache() {
   CHECK_LE(thread_data_ref.ngr_used, ngr_capacity);
   thread_data_ref.thread_cache_size +=
       (ngr_capacity - thread_data_ref.ngr_used);
-  // cout << "thread_cache_size = " << thread_data_ref.thread_cache_size << endl;
+  cout << "thread_cache_size = " << thread_data_ref.thread_cache_size << endl;
   ThreadCache& thread_cache = thread_data_ref.thread_cache;
   thread_cache.init(thread_data_ref.thread_cache_size);
 }

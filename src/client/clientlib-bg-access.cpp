@@ -104,7 +104,7 @@ void ClientLib::alloc_worker_entry(OpSeqWorkerInfo& worker_info) {
     for (uint i = 0; i < opseq.size(); i++) {
       OpInfo& op_info = opseq[i];
       if (op_info.type == OpInfo::READ && op_info.local) {
-        // cout << "BG READ, handle #" << i << endl;
+        // cout << "BG LocalAccess, handle #" << i << endl;
         alloc_worker_localaccess(
             op_info, worker_info, cpu_buffer, cuda_stream, cublas_handle);
         continue;
@@ -228,13 +228,6 @@ void ClientLib::alloc_worker_localaccess(
   SharedBuffer& shared_buffer = *op_info.shared_buffer;
   uint num_rows = op_info.rows.size();
   unique_lock<mutex> shared_buffer_lock(shared_buffer.mutex);
-  while (shared_buffer.buffer) {
-    if (!shared_buffer.cvar.timed_wait(shared_buffer_lock,
-        boost::posix_time::milliseconds(12000))) {
-       cerr << "opseq worker of machine " << process_id
-            << " waiting timed out for shared buffer to be released\n";
-    }
-  }
   if (shared_buffer.buffer) {
     /* Buffer already exists */
     CHECK_GT(shared_buffer.ref_count, 0);
