@@ -467,15 +467,7 @@ void ClientLib::vi_create_local_storage() {
 
   /* Allocate CPU buffer */
   size_t size = max_nr_each_access * sizeof(RowData);
-  /* On CUDA 7.5 and CUDA 7.0, the cudaMallocHost() will sometimes fail
-   * even though there is still available memory to allocate.
-   * I don't know why it's happening, but as a workaround,
-   * I added a while loop to retry cudaMallocHost(). */
-  while (cudaMallocHost(&thread_data_ref.cpu_buffer, size) != cudaSuccess) {
-    cout << "*** WARNING: cudaMallocHost failed at process " << process_id
-         << ", will retry"
-         << endl;
-  }
+  mallocHost(&thread_data_ref.cpu_buffer, size);
   thread_data_ref.cpu_buffer_size = size;
   // cout << "max_nr_each_access = " << max_nr_each_access << endl;
 
@@ -726,8 +718,8 @@ void ClientLib::vi_process_channel_finalize(
     }
     size_t size = biggest_table_size * sizeof(RowData);
     comm_channel.comm_buffer_size = size;
-    CUDA_CHECK(cudaMallocHost(&comm_channel.send_buffer, size));
-    CUDA_CHECK(cudaMallocHost(&comm_channel.recv_buffer, size));
+    mallocHost(&comm_channel.send_buffer, size);
+    mallocHost(&comm_channel.recv_buffer, size);
   }
 }
 

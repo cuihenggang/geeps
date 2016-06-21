@@ -83,17 +83,7 @@ void ClientLib::start_opseq() {
 void ClientLib::alloc_worker_entry(OpSeqWorkerInfo& worker_info) {
   OpSeq& opseq = *worker_info.opseq_ptr;
   RowData *cpu_buffer;
-  /* On CUDA 7.5 and CUDA 7.0, the cudaMallocHost() will sometimes fail
-   * even though there is still available memory to allocate.
-   * I don't know why it's happening, but as a workaround,
-   * I added a while loop to retry cudaMallocHost(). */
-  // CUDA_CHECK(cudaMallocHost(&cpu_buffer, worker_info.cpu_buffer_size));
-  while (cudaMallocHost(
-      &cpu_buffer, worker_info.cpu_buffer_size) != cudaSuccess) {
-    cout << "*** WARNING: cudaMallocHost failed at process " << process_id
-         << ", will retry"
-         << endl;
-  }
+  mallocHost(&cpu_buffer, worker_info.cpu_buffer_size);
   cudaStream_t cuda_stream;
   cublasHandle_t cublas_handle;
   CUDA_CHECK(cudaStreamCreateWithFlags(&cuda_stream, cudaStreamNonBlocking));
@@ -140,17 +130,7 @@ void ClientLib::alloc_worker_entry(OpSeqWorkerInfo& worker_info) {
 void ClientLib::reclaim_worker_entry(OpSeqWorkerInfo& worker_info) {
   OpSeq& opseq = *worker_info.opseq_ptr;
   RowData *cpu_buffer;
-  /* On CUDA 7.5 and CUDA 7.0, the cudaMallocHost() will sometimes fail
-   * even though there is still available memory to allocate.
-   * I don't know why it's happening, but as a workaround,
-   * I added a while loop to retry cudaMallocHost(). */
-  // CUDA_CHECK(cudaMallocHost(&cpu_buffer, worker_info.cpu_buffer_size));
-  while (cudaMallocHost(
-      &cpu_buffer, worker_info.cpu_buffer_size) != cudaSuccess) {
-    cout << "*** WARNING: cudaMallocHost failed at process " << process_id
-         << ", will retry"
-         << endl;
-  }
+  mallocHost(&cpu_buffer, worker_info.cpu_buffer_size);
   cudaStream_t cuda_stream;
   cublasHandle_t cublas_handle;
   CUDA_CHECK(cudaStreamCreateWithFlags(&cuda_stream, cudaStreamNonBlocking));

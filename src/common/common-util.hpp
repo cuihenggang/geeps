@@ -80,6 +80,20 @@ inline uint get_nearest_power2(uint n) {
   return power2;
 }
 
+inline void mallocHost(void **ptr, size_t size) {
+  /* On CUDA 7.5 and CUDA 7.0, the cudaMallocHost() will sometimes fail
+  * even though there is still available memory to allocate.
+  * I don't know why it's happening, but as a workaround,
+  * I added this while loop to retry cudaMallocHost(). */
+  while (cudaMallocHost(ptr, size) != cudaSuccess) {
+    cout << "*** WARNING: cudaMallocHost failed, will retry" << endl;
+  }
+}
+
+inline void mallocHost(RowData **ptr, size_t size) {
+  mallocHost(reinterpret_cast<void **>(ptr), size);
+}
+
 /* Features:
  * - Single threaded
  * - The entries are freed in the same order as they are allocated. */
@@ -418,14 +432,7 @@ struct DataStorage {
       return;
     }
     CHECK(!ptr_);
-    /* On CUDA 7.5 and CUDA 7.0, the cudaMallocHost() will sometimes fail
-    * even though there is still available memory to allocate.
-    * I don't know why it's happening, but as a workaround,
-    * I added a while loop to retry cudaMallocHost(). */
-    // CUDA_CHECK(cudaMallocHost(&ptr_, memsize_));
-    while (cudaMallocHost(&ptr_, memsize_) != cudaSuccess) {
-      cout << "*** WARNING: cudaMallocHost failed, will retry" << endl;
-    }
+    mallocHost(&ptr_, memsize_);
   }
   void zerofy_data_cpu() {
     CHECK_EQ(type_, CPU);
