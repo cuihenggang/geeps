@@ -82,24 +82,44 @@ RouterHandler::RouterHandler(uint channel_id,
   }
 
   BOOST_FOREACH(string s, connect_to) {
-    router_socket.connect(s.c_str());
+    try {
+      router_socket.connect(s.c_str());
+    } catch (...) {
+      cerr << identity << " connect to " << s << " failed\n";
+      CHECK(0);
+    }
   }
   BOOST_FOREACH(string s, bind_to) {
-    router_socket.bind(s.c_str());
+    try {
+      router_socket.bind(s.c_str());
+    } catch (...) {
+      cerr << identity << " bind to " << s << " failed\n";
+      CHECK(0);
+    }
   }
 
   if (connect_to.size()) {
     /* CLient */
     client = true;
-    shutdown_socket.bind("inproc://client-rh-shutdown");
-    pull_socket.bind("inproc://inproc-client-msg");
-    local_recv_socket.bind("inproc://inproc-local-client-recv");
+    try {
+      shutdown_socket.bind("inproc://client-rh-shutdown");
+      pull_socket.bind("inproc://inproc-client-msg");
+      local_recv_socket.bind("inproc://inproc-local-client-recv");
+    } catch (...) {
+      cerr << identity << " internal bind failed\n";
+      CHECK(0);
+    }
   } else {
     /* Server */
     client = false;
-    shutdown_socket.bind("inproc://server-rh-shutdown");
-    pull_socket.bind("inproc://inproc-server-msg");
-    local_recv_socket.bind("inproc://inproc-local-server-recv");
+    try {
+      shutdown_socket.bind("inproc://server-rh-shutdown");
+      pull_socket.bind("inproc://inproc-server-msg");
+      local_recv_socket.bind("inproc://inproc-local-server-recv");
+    } catch (...) {
+      cerr << identity << " internal bind failed\n";
+      CHECK(0);
+    }
   }
 }
 
