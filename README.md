@@ -2,7 +2,7 @@
 
 [![License](https://img.shields.io/badge/license-BSD-blue.svg)](LICENSE)
 
-GeePS is a parameter server library that scales single-machine GPU machine learning applications (such as Caffe) to a cluster of machines.
+[GeePS](https://cuihenggang.github.io/archive/paper/[eurosys16]geeps.pdf) is a parameter server library that scales single-machine GPU machine learning applications (such as Caffe) to a cluster of machines.
 
 
 ## Download and build GeePS and Caffe application
@@ -71,8 +71,18 @@ Our script will partition the datasets into two parts, one for each machine. You
 Please look at our [wiki](https://github.com/cuihenggang/geeps/wiki) for more details. Happy training!
 
 
+## Automatic training hyperparameter tuning
+
+[MLtuner-GeePS]((https://github.com/cuihenggang/mltuner-geeps)) is an extended version of GeePS with automatic training hyperparameter tuning support. It includes a lightweight [MLtuner](https://cuihenggang.github.io/archive/paper/[arxiv]mltuner.pdf) module that automatically tunes the training hyperparameters for distributed ML training (including learning rate, momentum, batch size, data staleness, etc).
+
+
 ## Reference Paper
 
 Henggang Cui, Hao Zhang, Gregory R. Ganger, Phillip B. Gibbons, and Eric P. Xing.
 [GeePS: Scalable Deep Learning on Distributed GPUs with a GPU-Specialized Parameter Server](https://cuihenggang.github.io/archive/paper/[eurosys16]geeps.pdf).
 In ACM European Conference on Computer Systems, 2016 (EuroSys'16).
+
+Henggang Cui, Gregory R. Ganger, and Phillip B. Gibbons.
+[MLtuner: System Support for Automatic Machine Learning Tuning](https://cuihenggang.github.io/archive/paper/[arxiv]mltuner.pdf).
+arXiv preprint 1803.07445.
+
