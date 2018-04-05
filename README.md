@@ -73,7 +73,7 @@ Please look at our [wiki](https://github.com/cuihenggang/geeps/wiki) for more de
 
 ## Automatic training hyperparameter tuning
 
-[MLtuner-GeePS]((https://github.com/cuihenggang/mltuner-geeps)) is an extended version of GeePS with automatic training hyperparameter tuning support. It includes a lightweight [MLtuner](https://cuihenggang.github.io/archive/paper/[arxiv]mltuner.pdf) module that automatically tunes the training hyperparameters for distributed ML training (including learning rate, momentum, batch size, data staleness, etc).
+[MLtuner-GeePS](https://github.com/cuihenggang/mltuner-geeps) is an extended version of GeePS with automatic training hyperparameter tuning support. It includes a lightweight [MLtuner](https://cuihenggang.github.io/archive/paper/[arxiv]mltuner.pdf) module that automatically tunes the training hyperparameters for distributed ML training (including learning rate, momentum, batch size, data staleness, etc).
 
 
 ## Reference Paper
